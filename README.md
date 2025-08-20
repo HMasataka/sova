@@ -31,3 +31,7 @@ sova
   - macOS: `pbcopy`（標準搭載）
   - Linux: `xclip`または`xsel`
   - Windows: `clip`（標準搭載）
+
+## License
+
+MIT License - see the [LICENSE](LICENSE) file for details.
