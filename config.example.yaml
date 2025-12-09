@@ -1,0 +1,18 @@
+# Sova Configuration File
+# Copy this file to ~/.sova/config.yaml and customize as needed
+
+# Editor to use for editing
+# Examples: nvim, vim, code --wait, emacs, nano
+# Default: nvim
+editor: nvim
+
+# Path to save history
+# You can use ~ to represent your home directory
+# Default: ~/.sova/history.txt
+history_path: ~/.sova/history.txt
+
+# Maximum number of history entries to keep
+# Set to 0 for unlimited history
+# When the limit is reached, oldest entries will be automatically removed
+# Default: 0 (unlimited)
+max_history_entries: 0
