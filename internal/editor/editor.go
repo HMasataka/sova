@@ -25,7 +25,15 @@ func EditAndCopy(cfg *config.Config) error {
 		return fmt.Errorf("failed to close temp file: %w", err)
 	}
 
-	cmd := exec.Command(cfg.Editor, tmpFile.Name())
+	// Parse editor command and arguments
+	editorParts := strings.Fields(cfg.Editor)
+	if len(editorParts) == 0 {
+		return fmt.Errorf("editor command is empty")
+	}
+
+	// Build command with editor arguments and temp file
+	args := append(editorParts[1:], tmpFile.Name())
+	cmd := exec.Command(editorParts[0], args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
