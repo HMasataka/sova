@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/HMasataka/sova/internal/storage"
 	"gopkg.in/yaml.v3"
 )
 
@@ -20,13 +21,12 @@ type Config struct {
 func Load() (*Config, error) {
 	cfg := defaultConfig()
 
-	homeDir, err := os.UserHomeDir()
+	configPath, err := storage.GetConfigPath()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get home directory: %w", err)
+		return nil, err
 	}
 
-	configPath := filepath.Join(homeDir, ".sova", "config.yaml")
-	data, err := os.ReadFile(configPath)
+	data, err := storage.ReadFile(configPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return cfg, nil
@@ -38,28 +38,20 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
 	}
 
-	// Expand ~ in paths
-	cfg.HistoryPath = expandPath(cfg.HistoryPath, homeDir)
+	cfg.HistoryPath, err = storage.ExpandPath(cfg.HistoryPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to expand history path: %w", err)
+	}
 
 	return cfg, nil
 }
 
-// expandPath expands ~ in the path to the home directory.
-func expandPath(path, homeDir string) string {
-	if len(path) > 0 && path[0] == '~' {
-		if len(path) == 1 || path[1] == '/' {
-			return filepath.Join(homeDir, path[1:])
-		}
-	}
-	return path
-}
-
 // defaultConfig returns the default configuration.
 func defaultConfig() *Config {
-	homeDir, _ := os.UserHomeDir()
+	sovaDir, _ := storage.GetSovaDir()
 	return &Config{
 		Editor:            "nvim",
-		HistoryPath:       filepath.Join(homeDir, ".sova", "history.txt"),
+		HistoryPath:       filepath.Join(sovaDir, "history.txt"),
 		MaxHistoryEntries: 0, // 0 means unlimited
 	}
 }
