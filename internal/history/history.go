@@ -61,6 +61,10 @@ func enforceMaxEntries(cfg *config.Config) error {
 	// Keep only the most recent entries
 	keepCount := cfg.MaxHistoryEntries - 1
 	if keepCount <= 0 {
+		// Clear all entries to make room for the new one
+		if err := os.WriteFile(cfg.HistoryPath, []byte(""), 0644); err != nil {
+			return fmt.Errorf("failed to clear history: %w", err)
+		}
 		return nil
 	}
 

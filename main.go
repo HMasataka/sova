@@ -21,7 +21,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("Configuration loaded: %+v\n", cfg)
 
 	var opts Options
 	parser := flags.NewParser(&opts, flags.Default)
