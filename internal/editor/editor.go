@@ -7,12 +7,13 @@ import (
 	"strings"
 
 	"github.com/HMasataka/sova/internal/clipboard"
+	"github.com/HMasataka/sova/internal/config"
 	"github.com/HMasataka/sova/internal/history"
 )
 
-// EditAndCopy opens a temporary file in nvim, and copies the content to clipboard.
+// EditAndCopy opens a temporary file in the configured editor, and copies the content to clipboard.
 // It also saves the content to history.
-func EditAndCopy() error {
+func EditAndCopy(cfg *config.Config) error {
 	tmpFile, err := os.CreateTemp("", "edit_tmp_*.txt")
 	if err != nil {
 		return fmt.Errorf("failed to create temp file: %w", err)
@@ -24,13 +25,13 @@ func EditAndCopy() error {
 		return fmt.Errorf("failed to close temp file: %w", err)
 	}
 
-	cmd := exec.Command("nvim", tmpFile.Name())
+	cmd := exec.Command(cfg.Editor, tmpFile.Name())
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("nvim execution failed: %w", err)
+		return fmt.Errorf("%s execution failed: %w", cfg.Editor, err)
 	}
 
 	editedContent, err := os.ReadFile(tmpFile.Name())
@@ -52,7 +53,7 @@ func EditAndCopy() error {
 
 	fmt.Println("Content copied to clipboard successfully")
 
-	if err := history.Save(content); err != nil {
+	if err := history.Save(cfg, content); err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: Failed to save to history: %v\n", err)
 	}
 

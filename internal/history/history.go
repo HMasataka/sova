@@ -4,23 +4,27 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
+
+	"github.com/HMasataka/sova/internal/config"
 )
 
 // Save saves the given content to the history file with a timestamp.
-func Save(content string) error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return fmt.Errorf("failed to get home directory: %w", err)
+func Save(cfg *config.Config, content string) error {
+	historyDir := filepath.Dir(cfg.HistoryPath)
+	if err := os.MkdirAll(historyDir, 0755); err != nil {
+		return fmt.Errorf("failed to create history directory: %w", err)
 	}
 
-	sovaDir := filepath.Join(homeDir, ".sova")
-	if err := os.MkdirAll(sovaDir, 0755); err != nil {
-		return fmt.Errorf("failed to create .sova directory: %w", err)
+	// If max entries is set, enforce the limit
+	if cfg.MaxHistoryEntries > 0 {
+		if err := enforceMaxEntries(cfg); err != nil {
+			return err
+		}
 	}
 
-	historyFile := filepath.Join(sovaDir, "history.txt")
-	f, err := os.OpenFile(historyFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(cfg.HistoryPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to open history file: %w", err)
 	}
@@ -36,15 +40,43 @@ func Save(content string) error {
 	return nil
 }
 
-// Show displays all history entries from the history file.
-func Show() error {
-	homeDir, err := os.UserHomeDir()
+// enforceMaxEntries removes old entries if the count exceeds the limit.
+func enforceMaxEntries(cfg *config.Config) error {
+	data, err := os.ReadFile(cfg.HistoryPath)
 	if err != nil {
-		return fmt.Errorf("failed to get home directory: %w", err)
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("failed to read history file: %w", err)
 	}
 
-	historyFile := filepath.Join(homeDir, ".sova", "history.txt")
-	content, err := os.ReadFile(historyFile)
+	content := string(data)
+	entries := strings.Split(content, "=== ")
+	entries = entries[1:] // Skip the first empty element
+
+	if len(entries) < cfg.MaxHistoryEntries {
+		return nil
+	}
+
+	// Keep only the most recent entries
+	keepCount := cfg.MaxHistoryEntries - 1
+	if keepCount <= 0 {
+		return nil
+	}
+
+	entriesToKeep := entries[len(entries)-keepCount:]
+	newContent := "=== " + strings.Join(entriesToKeep, "=== ")
+
+	if err := os.WriteFile(cfg.HistoryPath, []byte(newContent), 0644); err != nil {
+		return fmt.Errorf("failed to write trimmed history: %w", err)
+	}
+
+	return nil
+}
+
+// Show displays all history entries from the history file.
+func Show(cfg *config.Config) error {
+	content, err := os.ReadFile(cfg.HistoryPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			fmt.Println("No history found.")
